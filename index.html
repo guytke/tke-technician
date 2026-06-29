@@ -248,7 +248,7 @@ textarea.field-area:focus{border-color:var(--green-border)}
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('/sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').catch(function(){});
     navigator.serviceWorker.addEventListener('controllerchange',function(){
       sessionStorage.setItem('sw_updated','1');
       window.location.reload();
