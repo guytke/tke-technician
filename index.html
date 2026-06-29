@@ -6,13 +6,13 @@
 
 
 
-<meta name="theme-color" content="#ff6b00">
-<title>TKE Pro</title>
+<meta name="theme-color" content="#00d4ff">
+<title>FieldPro</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.jpg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="TKE Pro">
+<meta name="apple-mobile-web-app-title" content="FieldPro">
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap');
@@ -20,7 +20,7 @@
 :root{
   --bg:#0a0a0a;--bg2:#141414;--bg3:#1e1e1e;--bg4:#252525;
   --border:rgba(255,255,255,0.08);
-  --orange:#e85d00;--orange-dim:rgba(232,93,0,0.15);--orange-border:rgba(232,93,0,0.4);
+  --orange:#00d4ff;--orange-dim:rgba(0,212,255,0.15);--orange-border:rgba(0,212,255,0.4);
   --green:#10b981;--green-dim:rgba(16,185,129,0.12);--green-border:rgba(16,185,129,0.35);
   --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);
   --text:#f0f0f0;--text2:#aaa;--text3:#555;
@@ -106,7 +106,7 @@ textarea{resize:none;line-height:1.6;overflow:hidden}
 input[type=text],input[type=number]{overscroll-behavior:contain}
 .label-book{color:#fb8c40 !important}
 .label-field{color:#34d399 !important}
-textarea.book-area{border-color:rgba(232,93,0,0.25)}
+textarea.book-area{border-color:rgba(0,212,255,0.25)}
 textarea.book-area:focus{border-color:var(--orange-border)}
 textarea.field-area{border-color:rgba(16,185,129,0.25)}
 textarea.field-area:focus{border-color:var(--green-border)}
@@ -302,7 +302,7 @@ if('serviceWorker' in navigator){
 <!-- LOGIN SCREEN -->
 <div id="login-screen" style="display:none">
   <div class="login-box">
-    <div class="login-logo">🛗 <span>TKE Pro</span></div>
+    <div class="login-logo">🛗 <span>FieldPro</span></div>
     <div id="login-bio-section" style="display:none">
       <button class="login-btn-bio" onclick="loginWithBiometric()">
         <span style="font-size:20px">🪪</span> כניסה עם טביעת אצבע
@@ -831,7 +831,7 @@ if('serviceWorker' in navigator){
       <div id="parts-stat-locs" style="font-size:26px;font-weight:700;color:#10b981;font-family:Heebo,sans-serif">0</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px">מלאי נמוך</div>
     </div>
-    <div style="background:var(--bg2);border:1px solid rgba(232,93,0,0.4);border-radius:var(--radius);padding:14px;text-align:center">
+    <div style="background:var(--bg2);border:1px solid rgba(0,212,255,0.4);border-radius:var(--radius);padding:14px;text-align:center">
       <div style="font-size:22px;margin-bottom:4px">📦</div>
       <div id="parts-stat-total" style="font-size:26px;font-weight:700;color:var(--orange);font-family:Heebo,sans-serif">0</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px">אזל המלאי</div>
@@ -5434,7 +5434,7 @@ async function acceptBioOffer() {
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: 'TKE Pro', id: location.hostname },
+        rp: { name: 'FieldPro', id: location.hostname },
         user: { id: userId, name: _pendingBioUsername, displayName: _pendingBioUsername },
         pubKeyCredParams: [
           { type: 'public-key', alg: -7 },
@@ -5498,4 +5498,5 @@ async function loginWithBiometric() {
 </script>
 </body>
 </html>
+
 
