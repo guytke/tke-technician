@@ -5231,9 +5231,7 @@ function viewLearningItem(id){
     (item.text
       ? '<div style="white-space:pre-wrap;font-size:15px;color:var(--text);line-height:1.8;margin-bottom:16px;direction:rtl">'+esc(item.text)+'</div>'
       : '<div style="color:var(--text3);font-size:14px;text-align:center;padding:20px 0">אין מלל חופשי לפריט זה</div>')+
-    (item.images&&item.images.length?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+item.images.map(function(src){
-      return '<img src="'+src+'" style="max-width:100%;max-height:220px;border-radius:8px;cursor:pointer;object-fit:contain" onclick="openPageImageModal(this.src)">';
-    }).join('')+'</div>':'')+
+    (item.images&&item.images.length?'<div class="view-section"><div class="view-label">📸 תמונות</div><div class="img-previews">'+item.images.map(function(src){ return '<div class="img-thumb-wrap"><img class="img-thumb" src="'+src+'" onclick="showFullImg(this.src)"></div>'; }).join('')+'</div></div>':'')+
     (ms.length?'<div style="margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--text2)">📌 שייך לדגמי מעליות: <span style="color:var(--text);font-weight:600">'+ms.map(esc).join(', ')+'</span></div>':'')+
     '<div style="display:flex;gap:8px;margin-top:4px">'+
       '<button onclick="openLearningEdit(\''+id+'\');closeModal(\'learning-view-modal\')" style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px;font-size:14px;cursor:pointer;color:var(--text);font-family:Heebo,sans-serif">✏️ ערוך</button>'+
@@ -5278,23 +5276,42 @@ function _lrnGuardClose(){
 
 function _lrnRenderImages(){
   var wrap=document.getElementById('lrn-img-preview'); if(!wrap) return;
-  wrap.innerHTML=_lrnImages.map(function(src,i){
-    return '<div style="position:relative;display:inline-block">'+
-      '<img src="'+src+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;margin:2px">'+
-      '<button onclick="_lrnRemoveImg('+i+')" style="position:absolute;top:0;right:0;background:#ef4444;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;line-height:1;padding:0">×</button>'+
-    '</div>';
-  }).join('');
+  wrap.innerHTML='';
+  _lrnImages.forEach(function(src,i){
+    var d=document.createElement('div');
+    d.className='img-thumb-wrap';
+    var img=document.createElement('img');
+    img.className='img-thumb';
+    img.src=src;
+    img.onclick=function(){ showFullImg(src); };
+    var btn=document.createElement('button');
+    btn.className='img-del';
+    btn.textContent='×';
+    btn.onclick=function(){ _lrnRemoveImg(i); };
+    d.appendChild(img);
+    d.appendChild(btn);
+    wrap.appendChild(d);
+  });
 }
 
 function _lrnRemoveImg(i){ _lrnImages.splice(i,1); _lrnRenderImages(); _lrnDirty=true; }
 
-function lrnAddImages(input){
-  Array.from(input.files).forEach(function(file){
-    var r=new FileReader();
-    r.onload=function(e){ _lrnImages.push(e.target.result); _lrnRenderImages(); _lrnDirty=true; };
-    r.readAsDataURL(file);
-  });
+async function lrnAddImages(input){
+  var files=Array.from(input.files);
   input.value='';
+  for(var f of files){
+    try{
+      var blob=await compressImage(f);
+      var dataUrl=await new Promise(function(res){
+        var fr=new FileReader();
+        fr.onload=function(ev){ res(ev.target.result); };
+        fr.readAsDataURL(blob);
+      });
+      _lrnImages.push(dataUrl);
+      _lrnRenderImages();
+      _lrnDirty=true;
+    }catch(err){ console.error('[lrnAddImages]',err); }
+  }
 }
 
 async function lrnRephrase(){
