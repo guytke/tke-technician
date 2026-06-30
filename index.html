@@ -3093,7 +3093,7 @@ function pmOpenDetail(id){
       '<button onclick="pmOpenEditIdb(\''+id+'\');pmCloseDetail()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Heebo,sans-serif">✏️ עריכה</button>'+
       '<button onclick="pmCloseDetail()" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;width:34px;height:34px;font-size:18px;color:var(--text2);cursor:pointer;line-height:1">×</button>'+
     '</div>'+
-    '<div style="padding:16px;display:flex;flex-direction:column;gap:12px">'+
+    '<div id="_pm_detail_body" style="padding:16px;display:flex;flex-direction:column;gap:12px">'+
       (p.paramName?'<div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">שם טכני</div><div style="font-size:15px;font-weight:600;color:var(--text)">'+esc(p.paramName)+'</div></div>':'')+
       (p.description?'<div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">תיאור</div><div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">'+esc(p.description)+'</div></div>':'')+
       (models.length?'<div><div style="font-size:10px;color:var(--text3);margin-bottom:6px">דגמים תואמים</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+models.map(function(m){ return '<span style="background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:3px 10px;font-size:12px">'+esc(m)+'</span>'; }).join('')+'</div></div>':'')+
@@ -3102,6 +3102,13 @@ function pmOpenDetail(id){
       (p.notes?'<div><div style="font-size:10px;color:var(--text3);margin-bottom:3px">גבולות / הערות</div><div style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">'+esc(p.notes)+'</div></div>':'')+
     '</div>'+
   '</div>';
+  if(p.image){
+    var imgUrl=URL.createObjectURL(p.image);
+    var imgWrap=document.createElement('div');
+    imgWrap.innerHTML='<div style="font-size:10px;color:var(--text3);margin-bottom:6px">📸 תמונה</div><div class="img-previews"><div class="img-thumb-wrap"><img class="img-thumb" src="'+imgUrl+'"></div></div>';
+    imgWrap.querySelector('img').onclick=function(){ showFullImg(imgUrl); };
+    document.getElementById('_pm_detail_body').appendChild(imgWrap);
+  }
   el.onclick=function(e){ if(e.target===el) pmCloseDetail(); };
   history.pushState({tke:true},'');
 }
@@ -3172,7 +3179,20 @@ function pmOpenEditIdb(id){
   document.getElementById('pm-range').value=p.range||'';
   document.getElementById('pm-default').value=p.defaultValue||'';
   document.getElementById('pm-notes').value=p.notes||'';
-  pmClearImage(); pmRenderChips(); openModal('pm-modal');
+  pmClearImage();
+  if(p.image){
+    _pmImageBlob=p.image;
+    var thumb=document.getElementById('pm-img-thumb');
+    var prev=document.getElementById('pm-img-preview');
+    if(thumb){
+      var objUrl=URL.createObjectURL(p.image);
+      thumb.src=objUrl;
+      thumb.style.cursor='pointer';
+      thumb.onclick=function(){ showFullImg(objUrl); };
+    }
+    if(prev) prev.style.display='inline-block';
+  }
+  pmRenderChips(); openModal('pm-modal');
 }
 
 function pmOpenEditScan(idx){
@@ -3549,7 +3569,12 @@ function pmPickImage(e){
       _pmImageBlob=blob;
       var thumb=document.getElementById('pm-img-thumb');
       var prev=document.getElementById('pm-img-preview');
-      if(thumb) thumb.src=URL.createObjectURL(blob);
+      if(thumb){
+        var objUrl=URL.createObjectURL(blob);
+        thumb.src=objUrl;
+        thumb.style.cursor='pointer';
+        thumb.onclick=function(){ showFullImg(objUrl); };
+      }
       if(prev) prev.style.display='inline-block';
     },'image/jpeg',0.7);
     URL.revokeObjectURL(url);
