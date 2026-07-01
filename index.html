@@ -2063,6 +2063,20 @@ function saveMfrEntry(){
   const idx=mfrEntries.findIndex(e=>e.id===id);
   if(idx>=0) mfrEntries[idx]=entry; else mfrEntries.unshift(entry);
   saveMfr(mfrEntries);closeModal('mfr-form-modal');renderMfr();showToast('✅ נשמר!');
+  setTimeout(function(){ flashSavedMfr(code); }, 280);
+}
+
+function flashSavedMfr(code){
+  var cards=document.querySelectorAll('#mfr-list .card');
+  for(var i=0;i<cards.length;i++){
+    var el=cards[i].querySelector('.card-code');
+    if(el && el.textContent.trim()===code){
+      cards[i].classList.add('saved-flash');
+      cards[i].scrollIntoView({behavior:'smooth',block:'center'});
+      setTimeout(function(c){ c.classList.remove('saved-flash'); },1100,cards[i]);
+      break;
+    }
+  }
 }
 
 function deleteMfrEntry(id){
@@ -5277,6 +5291,16 @@ function setLrnModel(m){ _lrnActiveModel=m; updateLearningFilters(); renderLearn
 function setLrnCat(c){   _lrnActiveCat=c;   updateLearningFilters(); renderLearning(); }
 function refreshLearning(){ updateLearningFilters(); renderLearning(); }
 
+function flashSavedLrn(id){
+  var card=document.querySelector('#lrn-list [onclick*="\''+id+'\'"]');
+  if(!card) card=document.querySelector('#lrn-list [onclick*="\"'+id+'\""]');
+  if(card){
+    card.classList.add('saved-flash');
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(function(){ card.classList.remove('saved-flash'); },1100);
+  }
+}
+
 // ── View ─────────────────────────────────────────────────
 function viewLearningItem(id){
   var item = learningItems.find(function(x){ return x.id===id; });
@@ -5438,6 +5462,7 @@ function saveLearningItem(){
   if(idx>=0) learningItems[idx]=item; else learningItems.unshift(item);
   saveLearning(learningItems); _lrnSyncToD1(item);
   closeModal('learning-form-modal'); refreshLearning(); showToast('✅ נשמר!'); _lrnDirty=false;
+  setTimeout(function(){ flashSavedLrn(id); }, 280);
 }
 
 function _lrnBuild(id,models,category,title){
