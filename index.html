@@ -5292,13 +5292,15 @@ function setLrnModel(m){ _lrnActiveModel=m; updateLearningFilters(); renderLearn
 function setLrnCat(c){   _lrnActiveCat=c;   updateLearningFilters(); renderLearning(); }
 function refreshLearning(){ updateLearningFilters(); renderLearning(); }
 
-function flashSavedLrn(id){
-  var card=document.querySelector('#lrn-list [onclick*="\''+id+'\'"]');
-  if(!card) card=document.querySelector('#lrn-list [onclick*="\"'+id+'\""]');
-  if(card){
-    card.classList.add('saved-flash-2x');
-    card.scrollIntoView({behavior:'smooth',block:'center'});
-    setTimeout(function(){ card.classList.remove('saved-flash-2x'); },1400);
+function flashSavedLrn(title){
+  var cards=document.querySelectorAll('#lrn-list [onclick^="viewLearningItem"]');
+  for(var i=0;i<cards.length;i++){
+    if(cards[i].textContent.indexOf(title)!==-1){
+      cards[i].classList.add('saved-flash-2x');
+      cards[i].scrollIntoView({behavior:'smooth',block:'center'});
+      setTimeout(function(c){ c.classList.remove('saved-flash-2x'); },1400,cards[i]);
+      break;
+    }
   }
 }
 
@@ -5446,12 +5448,14 @@ function saveLearningItem(){
           var item=_lrnBuild(id,models,category,title);
           learningItems.unshift(item); saveLearning(learningItems); _lrnSyncToD1(item);
           closeModal('learning-form-modal'); refreshLearning(); showToast('✅ נוסף!'); _lrnDirty=false;
+          setTimeout(function(){ flashSavedLrn(title); }, 280);
         },
         function(){
           var item=_lrnBuild(dup.id,models,category,title);
           var idx=learningItems.findIndex(function(x){ return x.id===dup.id; });
           if(idx>=0) learningItems[idx]=item; saveLearning(learningItems); _lrnSyncToD1(item);
           closeModal('learning-form-modal'); refreshLearning(); showToast('✅ עודכן!'); _lrnDirty=false;
+          setTimeout(function(){ flashSavedLrn(title); }, 280);
         },
         function(){}
       );
@@ -5463,7 +5467,7 @@ function saveLearningItem(){
   if(idx>=0) learningItems[idx]=item; else learningItems.unshift(item);
   saveLearning(learningItems); _lrnSyncToD1(item);
   closeModal('learning-form-modal'); refreshLearning(); showToast('✅ נשמר!'); _lrnDirty=false;
-  setTimeout(function(){ flashSavedLrn(id); }, 280);
+  setTimeout(function(){ flashSavedLrn(title); }, 280);
 }
 
 function _lrnBuild(id,models,category,title){
