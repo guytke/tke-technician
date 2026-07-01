@@ -92,6 +92,7 @@ body{background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;min-h
 @keyframes flashGreen{0%{border-color:var(--border)}40%{border-color:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,0.25)}100%{border-color:var(--border)}}
 .modal.closing{animation:slideDown 0.22s ease forwards}
 .card.saved-flash{animation:flashGreen 1s ease}
+.card.saved-flash-2x{animation:flashGreen 0.6s ease 2}
 .modal-handle{width:34px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 14px}
 .modal-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text)}
 
@@ -2071,9 +2072,9 @@ function flashSavedMfr(code){
   for(var i=0;i<cards.length;i++){
     var el=cards[i].querySelector('.card-code');
     if(el && el.textContent.trim()===code){
-      cards[i].classList.add('saved-flash');
+      cards[i].classList.add('saved-flash-2x');
       cards[i].scrollIntoView({behavior:'smooth',block:'center'});
-      setTimeout(function(c){ c.classList.remove('saved-flash'); },1100,cards[i]);
+      setTimeout(function(c){ c.classList.remove('saved-flash-2x'); },1400,cards[i]);
       break;
     }
   }
@@ -5295,9 +5296,9 @@ function flashSavedLrn(id){
   var card=document.querySelector('#lrn-list [onclick*="\''+id+'\'"]');
   if(!card) card=document.querySelector('#lrn-list [onclick*="\"'+id+'\""]');
   if(card){
-    card.classList.add('saved-flash');
+    card.classList.add('saved-flash-2x');
     card.scrollIntoView({behavior:'smooth',block:'center'});
-    setTimeout(function(){ card.classList.remove('saved-flash'); },1100);
+    setTimeout(function(){ card.classList.remove('saved-flash-2x'); },1400);
   }
 }
 
