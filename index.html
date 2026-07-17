@@ -3291,8 +3291,33 @@ async function pmSave(){
     images: _pmImages.slice()
   };
   if(_pmEditMode==='scan' && _pmEditScanIdx>=0){
-    // update scan preview in-memory, don't save to IDB yet
     _pmScanParsed[_pmEditScanIdx]=Object.assign(_pmScanParsed[_pmEditScanIdx],pData);
+    if(_pmScanParsed.length===1){
+      // זרימת פרמטר בודד — אין מסך "שמור נבחרים" נגיש, אז שומרים ישירות ל-IDB וסוגרים את שני המסכים
+      var sp=_pmScanParsed[_pmEditScanIdx];
+      var existingSingle=await _pmIdbGetAll();
+      var codeKeySingle=(sp.paramCode||'').trim().toLowerCase();
+      var dupSingle=existingSingle.find(function(x){ return (x.paramCode||'').trim().toLowerCase()===codeKeySingle; });
+      if(dupSingle){
+        var okSingle=confirm('פרמטר "'+sp.paramCode+'" כבר קיים. להחליף?');
+        if(!okSingle) return;
+        await _pmIdbDelete(dupSingle.id);
+      }
+      await _pmIdbPut({
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+        paramCode:sp.paramCode||'', paramName:sp.paramName||'', description:sp.description||'',
+        models:sp.models||[], range:sp.range||'', defaultValue:sp.defaultValue||'', notes:sp.notes||'',
+        images:sp.images||[], createdAt:Date.now()
+      });
+      _pmScanParsed=[];
+      pmClose();
+      pmScanClose();
+      _pmActiveModel=''; pmSetView('all');
+      await pmRefresh();
+      showToast('✅ פרמטר נשמר!');
+      return;
+    }
+    // כמה פרמטרים — עדכון בתצוגה המקדימה בלבד, השמירה הסופית דרך "שמור נבחרים"
     pmClose();
     pmScanRerenderList();
     showToast('✅ עודכן — לחץ עכשיו על השמור נבחרים למטה כדי לשמור סופית');
@@ -3301,11 +3326,10 @@ async function pmSave(){
   // IDB save
   var dup=_pmList.find(function(p){
     if(p.id===(document.getElementById('pm-edit-id').value||'')) return false;
-    if(p.paramCode.toLowerCase()!==code.toLowerCase()) return false;
-    return models.some(function(m){return (p.models||[]).includes(m);});
+    return p.paramCode.toLowerCase()===code.toLowerCase();
   });
   if(dup){
-    var dupM=models.find(function(m){return (dup.models||[]).includes(m);});
+    var dupM=models.find(function(m){return (dup.models||[]).includes(m);})||(dup.models||[])[0]||'ללא דגם';
     var _buildP=function(useId){ return Object.assign({id:useId,createdAt:dup.createdAt||Date.now()},pData); };
     _showConflictDialog(code, dupM,
       function(){ // הוסף כחדש
@@ -3531,6 +3555,18 @@ async function pmScanRun(files){
   else allParams=allParams.map(function(p){ return Object.assign({},p,{models:[]}); });
 
   _pmScanParsed=allParams;
+  if(allParams.length===1){
+    pmScanClose();
+    pmOpenAdd();
+    document.getElementById('pm-code').value = _pmScanParsed[0].paramCode||'';
+    document.getElementById('pm-name').value = _pmScanParsed[0].paramName||'';
+    document.getElementById('pm-desc').value = _pmScanParsed[0].description||'';
+    document.getElementById('pm-range').value = _pmScanParsed[0].range||'';
+    document.getElementById('pm-default').value = _pmScanParsed[0].defaultValue||'';
+    document.getElementById('pm-notes').value = _pmScanParsed[0].notes||'';
+    document.getElementById('pm-title').textContent = '✏️ פרמטר מסריקה — אמת ושמור';
+    return;
+  }
   var foundTxt='✅ נמצאו '+allParams.length+' פרמטרים';
   if(files.length>1) foundTxt+=' מ-'+files.length+' קבצים';
   if(errors.length) foundTxt+=' ('+errors.length+' קבצים נכשלו)';
