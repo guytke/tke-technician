@@ -1604,7 +1604,7 @@ async function exportBackup(){
       return out;
     }));
     var pmParts = await _pmIdbGetAll();
-    const blob = new Blob([JSON.stringify({version:2,date:new Date().toISOString(),faults,params,mfr:mfrEntries,catalog:catalogExport,pmParams:pmParts},null,2)],{type:'application/json'});
+    const blob = new Blob([JSON.stringify({version:2,date:new Date().toISOString(),faults,params,mfr:mfrEntries,catalog:catalogExport,pmParams:pmParts,learningItems:loadLearning()},null,2)],{type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'tke-backup-'+new Date().toISOString().split('T')[0]+'.json';
@@ -2735,6 +2735,7 @@ function importBackup(e){
       const importedMfr = data.mfr || data.mfrEntries || data.manufacturer || [];
       const importedCatalog = data.catalog || [];
       const importedPmParams = data.pmParams || [];
+      const importedLearning = data.learningItems || [];
       var msg = 'שחזור יחליף ' + faults.length + ' תקלות קיימות ב-' + importedFaults.length + ' תקלות מהגיבוי.';
       if(importedCatalog.length) msg += '\nיובאו גם ' + importedCatalog.length + ' חלקים למאגר.';
       if(!confirm(msg + '\nלהמשיך?')) return;
@@ -2748,27 +2749,33 @@ function importBackup(e){
       renderParams();
       // ייבוא מאגר חלקים עם תמונות
       if(importedCatalog.length){
-        showToast('⏳ מייבא מאגר חלקים...');
-        for(var i=0;i<importedCatalog.length;i++){
-          var p = Object.assign({},importedCatalog[i]);
-          if(p.imageBase64){
-            try{
-              var dataUrl = p.imageBase64.startsWith('data:') ? p.imageBase64 : 'data:image/jpeg;base64,'+p.imageBase64;
-              p.imageBlob = dataURLtoBlob(dataUrl);
-            }catch(e2){}
-            delete p.imageBase64;
+        try{
+          showToast('⏳ מייבא מאגר חלקים...');
+          for(var i=0;i<importedCatalog.length;i++){
+            var p = Object.assign({},importedCatalog[i]);
+            if(p.imageBase64){
+              try{
+                var dataUrl = p.imageBase64.startsWith('data:') ? p.imageBase64 : 'data:image/jpeg;base64,'+p.imageBase64;
+                p.imageBlob = dataURLtoBlob(dataUrl);
+              }catch(e2){}
+              delete p.imageBase64;
+            }
+            try{ await idbPut(p); }catch(e3){}
           }
-          await idbPut(p);
-        }
-        await refreshCatalogCache();
-        renderCatalog();
+          await refreshCatalogCache();
+          renderCatalog();
+        }catch(eCat){ showToast('⚠️ חלק ממאגר החלקים לא יובא: '+eCat.message); }
       }
-      // ייבוא פרמטרים
+      // ייבוא פרמטרים — תמיד מגיעים לכאן גם אם catalog נכשל
       if(importedPmParams.length){
         for(var j=0;j<importedPmParams.length;j++) await _pmIdbPut(importedPmParams[j]);
         await pmRefresh();
       }
-      showToast('✅ שוחזרו ' + faults.length + ' תקלות' + (importedCatalog.length ? ' + ' + importedCatalog.length + ' חלקים' : '') + '!');
+      // ייבוא פריטי לימוד
+      if(importedLearning.length){
+        try{ saveLearning(importedLearning); }catch(eLrn){}
+      }
+      showToast('✅ שוחזרו ' + faults.length + ' תקלות' + (importedCatalog.length ? ' + ' + importedCatalog.length + ' חלקים' : '') + (importedLearning.length ? ' + ' + importedLearning.length + ' פריטי לימוד' : '') + '!');
     } catch(err){
       showToast('❌ שגיאה בקריאת הקובץ: ' + (err.message||''));
     }
