@@ -1253,6 +1253,15 @@ function save(d){
   }
 }
 const SYNC_QUEUE_KEY = 'tke_sync_queue';
+const DELETED_IDS_KEY = 'tke_deleted_fault_ids';
+function _getDeletedIds(){ try{ return new Set(JSON.parse(localStorage.getItem(DELETED_IDS_KEY))||[]); }catch(e){ return new Set(); } }
+function _addDeletedId(id){ var s=_getDeletedIds(); s.add(String(id).trim()); localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(s))); }
+const DELETED_PARAM_IDS_KEY = 'tke_deleted_param_ids';
+function _getDeletedParamIds(){ try{ return new Set(JSON.parse(localStorage.getItem(DELETED_PARAM_IDS_KEY))||[]); }catch(e){ return new Set(); } }
+function _addDeletedParamId(id){ var s=_getDeletedParamIds(); s.add(String(id).trim()); localStorage.setItem(DELETED_PARAM_IDS_KEY, JSON.stringify(Array.from(s))); }
+const DELETED_CATALOG_IDS_KEY = 'tke_deleted_catalog_ids';
+function _getDeletedCatalogIds(){ try{ return new Set(JSON.parse(localStorage.getItem(DELETED_CATALOG_IDS_KEY))||[]); }catch(e){ return new Set(); } }
+function _addDeletedCatalogId(id){ var s=_getDeletedCatalogIds(); s.add(String(id).trim()); localStorage.setItem(DELETED_CATALOG_IDS_KEY, JSON.stringify(Array.from(s))); }
 function _getSyncQueue(){ try{ return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY))||[]; }catch(e){ return []; } }
 function _saveSyncQueue(q){ localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
 
@@ -1505,6 +1514,7 @@ function flashSavedCard(code){
 
 function deleteFault(id){
   if(!confirm('למחוק?')) return;
+  _addDeletedId(id);
   faults = faults.filter(f=>f.id!==id);
   save(faults); closeModal('view-modal'); refresh(); showToast('🗑 נמחק');
 }
@@ -2682,6 +2692,7 @@ function saveParam(){
 
 function deleteParam(id){
   if(!confirm('למחוק פרמטר זה?')) return;
+  _addDeletedParamId(id);
   params = params.filter(p=>p.id!==id);
   saveParams(params); closeModal('param-view-modal'); renderParams(); showToast('🗑 נמחק');
 }
@@ -3054,6 +3065,7 @@ function _pmIdbDelete(id){
 
 async function pmDelete(id){
   if(!confirm('למחוק פרמטר זה לצמיתות?')) return;
+  _addDeletedParamId(id);
   await _pmIdbDelete(id);
   await pmRefresh();
   showToast('🗑️ נמחק');
@@ -3120,8 +3132,10 @@ async function pmSyncFromD1(){
     var local = await _pmIdbGetAll();
     var localById = {};
     local.forEach(function(p){ localById[p.id]=p; });
+    var deletedParamIds = _getDeletedParamIds();
     for(var i=0;i<cloudParams.length;i++){
       var cp = cloudParams[i];
+      if(deletedParamIds.has(String(cp.id).trim())) continue; // נמחק במפורש — אל תחזיר
       var existing = localById[cp.id];
       if(existing) continue; // אם כבר קיים מקומית, אל תדרוס אותו
       var mapped = {
@@ -4406,8 +4420,10 @@ async function catalogSyncFromD1(){
     var local = await idbGetAll();
     var localById = {};
     local.forEach(function(p){ localById[p.id]=p; });
+    var deletedCatalogIds = _getDeletedCatalogIds();
     for(var i=0;i<cloudParts.length;i++){
       var cp = cloudParts[i];
+      if(deletedCatalogIds.has(String(cp.id).trim())) continue; // נמחק במפורש — אל תחזיר
       var existing = localById[cp.id];
       if(existing) continue; // אם כבר קיים מקומית, אל תדרוס אותו
       var createdAtMs = cp.created_at ? new Date(cp.created_at).getTime() : Date.now();
@@ -5008,6 +5024,7 @@ async function editCatalogPart(id){
 
 async function deleteCatalogPart(id){
   if(!confirm('למחוק חלק זה מהמאגר?')) return;
+  _addDeletedCatalogId(id);
   await idbDelete(id);
   if(_catalogObjURLs[id]){ URL.revokeObjectURL(_catalogObjURLs[id]); delete _catalogObjURLs[id]; }
   closeModal('catalog-detail-modal');
@@ -5761,8 +5778,9 @@ async function syncFaultsFromD1() {
     var localIds = new Set(local.map(function(f){ return String(f.id).trim(); }));
     var d1Ids   = new Set(d1Faults.map(function(f){ return String(f.id).trim(); }));
 
-    // תקלות ב-D1 שאין להן id תואם מקומית — תמיד הוסף
-    var toAdd = d1Faults.filter(function(f){ return !localIds.has(String(f.id).trim()); });
+    var deletedFaultIds = _getDeletedIds();
+    // תקלות ב-D1 שאין להן id תואם מקומית ולא נמחקו — הוסף
+    var toAdd = d1Faults.filter(function(f){ var fid=String(f.id).trim(); return !localIds.has(fid) && !deletedFaultIds.has(fid); });
     // תקלות מקומיות שלא ב-D1 — שלח ל-D1
     local.forEach(function(f){ if (!d1Ids.has(String(f.id).trim())) _sendFaultToD1(f, token); });
 
