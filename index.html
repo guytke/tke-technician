@@ -343,6 +343,7 @@ if('serviceWorker' in navigator){
     <div class="logo" id="main-logo">🛗 <span id="logo-icon"></span><span id="logo-text" style="color:var(--orange)">ספר תקלות</span></div>
     <div class="header-btns">
       <input type="file" id="restore-input" accept=".json" style="display:none" onchange="importBackup(event)">
+      <span id="sync-pending-badge" onclick="flushAllSyncQueues()" style="display:none;align-items:center;gap:4px;background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.35);color:#eab308;border-radius:14px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;font-family:Heebo,sans-serif"></span>
       <button class="btn btn-ghost btn-sm" onclick="refreshApp()">🔄 רענון</button>
       <button class="btn btn-ghost btn-sm" onclick="switchMainTab('faults')">🏠 בית</button>
       <button class="btn btn-ghost btn-sm" onclick="switchMainTab('tools')">🛠️ כלים</button>
@@ -5962,7 +5963,8 @@ function showApp() {
     return f;
   });
   if(cleaned) try { localStorage.setItem(KEY, JSON.stringify(faults)); } catch(e){}
-  flushSyncQueue();
+  updateSyncPendingBadge();
+  flushAllSyncQueues();
   syncFaultsFromD1();
   syncLearningFromD1();
 }
