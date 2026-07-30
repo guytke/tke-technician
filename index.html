@@ -3484,7 +3484,7 @@ async function pmSave(){
         images:sp.images||[], createdAt:Date.now()
       };
       await _pmIdbPut(_singleParam);
-      syncParamToD1(_singleParam);
+      await syncParamToD1(_singleParam).catch(function(){ _enqueueParam(_singleParam); });
       _pmScanParsed=[];
       pmClose();
       pmScanClose();
@@ -3510,11 +3510,11 @@ async function pmSave(){
     _showConflictDialog(code, dupM,
       function(){ // הוסף כחדש
         var np=_buildP(Date.now().toString(36)+Math.random().toString(36).slice(2,5));
-        _pmIdbPut(np).then(function(){ syncParamToD1(np); pmClose(); pmRefresh(); showToast('✅ נוסף כחדש!'); }).catch(function(e){ showToast('❌ '+e.message); });
+        _pmIdbPut(np).then(function(){ return syncParamToD1(np).catch(function(){ _enqueueParam(np); }); }).then(function(){ pmClose(); pmRefresh(); showToast('✅ נוסף כחדש!'); }).catch(function(e){ showToast('❌ '+e.message); });
       },
       function(){ // החלף קיים
         var rp=_buildP(dup.id);
-        _pmIdbPut(rp).then(function(){ syncParamToD1(rp); pmClose(); pmRefresh(); showToast('✅ עודכן!'); }).catch(function(e){ showToast('❌ '+e.message); });
+        _pmIdbPut(rp).then(function(){ return syncParamToD1(rp).catch(function(){ _enqueueParam(rp); }); }).then(function(){ pmClose(); pmRefresh(); showToast('✅ עודכן!'); }).catch(function(e){ showToast('❌ '+e.message); });
       },
       function(){} // ביטול
     );
@@ -3525,7 +3525,7 @@ async function pmSave(){
     createdAt:Date.now()
   },pData);
   try{
-    await _pmIdbPut(p); syncParamToD1(p); pmClose(); await pmRefresh(); showToast('✅ נשמר!');
+    await _pmIdbPut(p); await syncParamToD1(p).catch(function(){ _enqueueParam(p); }); pmClose(); await pmRefresh(); showToast('✅ נשמר!');
     setTimeout(function(){ flashSavedParam(code); }, 280);
   }catch(e){ showToast('❌ שגיאה: '+e.message); }
 }
@@ -5027,7 +5027,7 @@ async function saveCatalogPart(){
   if(_catalogImgBlob&&existing) part.fingerprint=null; // re-analyze new image
   try{
     await idbPut(part);
-    syncCatalogToD1(part);
+    await syncCatalogToD1(part).catch(function(){ _enqueueCatalogItem(part); });
     closeModal('catalog-add-modal');
     await refreshCatalogCache();
     renderCatalogChips(); renderCatalog();
@@ -5778,7 +5778,7 @@ async function lrnRephrase(){
   }
 }
 
-function saveLearningItem(){
+async function saveLearningItem(){
   var models   = _lrnSelectedModels.slice();
   var category = document.getElementById('lrn-category').value;
   var title    = document.getElementById('lrn-title').value.trim();
@@ -5791,16 +5791,18 @@ function saveLearningItem(){
     });
     if(dup){
       _showConflictDialog(title, models.join(', ')+' / '+category,
-        function(){
+        async function(){
           var item=_lrnBuild(id,models,category,title);
-          learningItems.unshift(item); saveLearning(learningItems); _lrnSyncToD1(item);
+          learningItems.unshift(item); saveLearning(learningItems);
+          await _lrnSyncToD1(item).catch(function(){ _enqueueLearningItem(item); });
           closeModal('learning-form-modal'); refreshLearning(); showToast('✅ נוסף!'); _lrnDirty=false;
           setTimeout(function(){ flashSavedLrn(title); }, 280);
         },
-        function(){
+        async function(){
           var item=_lrnBuild(dup.id,models,category,title);
           var idx=learningItems.findIndex(function(x){ return x.id===dup.id; });
-          if(idx>=0) learningItems[idx]=item; saveLearning(learningItems); _lrnSyncToD1(item);
+          if(idx>=0) learningItems[idx]=item; saveLearning(learningItems);
+          await _lrnSyncToD1(item).catch(function(){ _enqueueLearningItem(item); });
           closeModal('learning-form-modal'); refreshLearning(); showToast('✅ עודכן!'); _lrnDirty=false;
           setTimeout(function(){ flashSavedLrn(title); }, 280);
         },
@@ -5812,7 +5814,8 @@ function saveLearningItem(){
   var item=_lrnBuild(id,models,category,title);
   var idx=learningItems.findIndex(function(x){ return x.id===id; });
   if(idx>=0) learningItems[idx]=item; else learningItems.unshift(item);
-  saveLearning(learningItems); _lrnSyncToD1(item);
+  saveLearning(learningItems);
+  await _lrnSyncToD1(item).catch(function(){ _enqueueLearningItem(item); });
   closeModal('learning-form-modal'); refreshLearning(); showToast('✅ נשמר!'); _lrnDirty=false;
   setTimeout(function(){ flashSavedLrn(title); }, 280);
 }
