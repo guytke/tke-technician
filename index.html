@@ -6048,17 +6048,13 @@ const WEBAUTHN_LOGIN_VERIFY_URL  = 'https://tke-proxy.guyshtaiger.workers.dev/au
 const TOKEN_KEY   = 'tke_auth_token';    // localStorage — persists across app restarts (was sessionStorage)
 const TOKEN_EXP_KEY = 'tke_auth_expires'; // localStorage — ISO expiry of the current token, for display only
 const BIO_CRED  = 'tke_bio_cred_id';    // localStorage  — WebAuthn credential id (base64url)
-const BIO_TOKEN = 'tke_bio_token';      // localStorage  — token unlocked by biometric
+const BIO_TOKEN = 'tke_bio_token';      // legacy localStorage key — never read/written anymore
+                                          // (pre-WebAuthn mechanism); initAuth() purges any leftover value
 
-function b64u(buf) {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
-}
-function b64uDecode(s) {
-  s = s.replace(/-/g,'+').replace(/_/g,'/');
-  while (s.length % 4) s += '=';
-  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
-}
+// b64u()/b64uDecode() are gone — they only ever existed to hand-encode/decode
+// credential IDs for the old manual navigator.credentials.create()/get()
+// flow. SimpleWebAuthnBrowser handles all of that now; confirmed zero
+// remaining call sites before removing these.
 
 function getToken()   { return localStorage.getItem(TOKEN_KEY); }
 function setToken(t)  { localStorage.setItem(TOKEN_KEY, t); _authExpiredHandled=false; }
@@ -6195,10 +6191,9 @@ async function acceptBioOffer() {
     if (verifyRes.ok && verifyData.verified === true) {
       localStorage.setItem(BIO_CRED, verifyData.credentialId);
       // No token is stored here (or anywhere) to enable future biometric
-      // login — loginWithBiometric() (not yet switched over — that's a
-      // later step) still reads BIO_TOKEN, so it's kept in sync here too
-      // until that step lands.
-      localStorage.setItem(BIO_TOKEN, _pendingBioToken);
+      // login — loginWithBiometric() always performs a fresh WebAuthn
+      // ceremony verified by the server; BIO_CRED alone never grants a
+      // session.
       if (window.showToast) showToast('✅ טביעת אצבע נרשמה!');
     } else if (window.showToast) {
       showToast('⚠️ הרשמת טביעת אצבע לא הושלמה');
@@ -6300,13 +6295,13 @@ async function loginWithBiometric() {
 
 // Boot
 (function initAuth() {
+  // One-time cleanup of the legacy BIO_TOKEN value some devices may still
+  // have from before WebAuthn login was server-verified — it's never read
+  // anywhere anymore, so removing it changes no authentication behavior.
+  // showLogin() decides the biometric button on its own via hasBioCred().
+  localStorage.removeItem(BIO_TOKEN);
   if (getToken()) { showApp(); return; }
-  // Check if there's a bio-protected token (cross-session)
-  if (hasBioCred() && localStorage.getItem(BIO_TOKEN)) {
-    showLogin(); // shows with biometric button
-  } else {
-    showLogin();
-  }
+  showLogin();
 })();
 </script>
 </body>
